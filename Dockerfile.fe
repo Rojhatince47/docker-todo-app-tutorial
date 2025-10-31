@@ -1,0 +1,8 @@
+# frontend/Dockerfile
+
+# Resmi Apache sunucusunu (httpd) temel al
+FROM httpd:latest
+
+# Yereldeki tüm dosyaları (indeks.html vb.) 
+# imajın içindeki web dizinine kalıcı olarak KOPYALA
+COPY ./frontend/ /usr/local/apache2/htdocs/

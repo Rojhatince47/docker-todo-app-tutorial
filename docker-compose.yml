@@ -1,0 +1,18 @@
+version: "3"
+services:
+
+  database:
+    image: Rojhatince47/basic-docker-tutorial/db:proje
+    environment:
+      MYSQL_DATABASE: todo_app
+      MYSQL_USER: todo_admin
+      MYSQL_PASSWORD: password
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+  backend:
+    image:  Rojhatince47/basic-docker-tutorial/be:proje
+    ports:
+      - "5000:80"
+  frontend:
+    image: Rojhatince47/basic-docker-tutorial/fe:proje
+    ports:
+      - "3000:80"

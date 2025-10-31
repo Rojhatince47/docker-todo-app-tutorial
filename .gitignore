@@ -1,0 +1,13 @@
+# İşletim sistemi dosyaları
+.DS_Store
+*~
+*.swp
+
+# Eğer PHP için composer kullanırsanız
+/vendor
+
+# Eğer Node.js (frontend) kullanırsanız
+/node_modules
+
+# Gizli ortam değişkenleri dosyası (ŞİFRELER İÇİN)
+.env

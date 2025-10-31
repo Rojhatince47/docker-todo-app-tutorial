@@ -1,0 +1,37 @@
+FROM php:8.2-apache
+
+# Gerekli paketleri ve PHP eklentilerini yükle (Bu kısım sizde doğru)
+RUN apt-get update && apt-get install -y \
+    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev zlib1g-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install mysqli pdo pdo_mysql bcmath gd zip \
+    && a2enmod rewrite \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# DÜZELTME 1: .htaccess dosyalarının çalışması için AllowOverride ayarını ekle
+RUN cat <<EOF >> /etc/apache2/apache2.conf
+<Directory /var/www/html>
+    AllowOverride All
+    Require all granted
+</Directory>
+EOF
+
+# Çalışma dizini
+WORKDIR /var/www/html
+
+# DÜZELTME 2: "COPY ." yerine sadece API kodunuzu kopyalayın
+# Proje ana dizinindeki "api" klasörünü kopyaladığınızı varsayıyorum.
+COPY ./api /var/www/html/
+
+# (İsteğe bağlı) Apache'nin varsayılan "It works!" sayfasını sil
+RUN rm -f /var/www/html/index.html
+
+# DÜZELTME 3: İzin Hatası Çözümü
+# Kopyalanan dosyaların sahibini Apache'nin kullanıcısı (www-data) yap
+RUN chown -R www-data:www-data /var/www/html
+
+# Port
+EXPOSE 80
+
+# Apache başlat
+CMD ["apache2-foreground"]
