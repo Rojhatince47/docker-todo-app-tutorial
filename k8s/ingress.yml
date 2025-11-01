@@ -1,0 +1,37 @@
+# API sürümü ve kaynak tipi. Ingress için bu standarttır.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  # Ingress objesinin küme içindeki adı
+  name: my-ingress
+spec:
+  rules:
+  # 1. Kural: 'todo.ayti.tech' adresinden gelen istekler için
+  - host: todo.rojhat.ince
+    http:
+      paths:
+      # Gelen isteğin yolu '/' (ana sayfa) ise
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            # İsteği 'frontend' isimli servise yönlendir
+            name: frontend
+            port:
+              # 'frontend' servisinin '3000' numaralı portuna
+              number: 3000
+  
+  # 2. Kural: 'backend.ayti.tech' adresinden gelen istekler için
+  - host: backend.rojhat.ince
+    http:
+      paths:
+      # Gelen isteğin yolu '/' (ana sayfa) ise
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            # İsteği 'backend' isimli servise yönlendir
+            name: backend
+            port:
+              # 'backend' servisinin '5000' numaralı portuna
+              number: 5000

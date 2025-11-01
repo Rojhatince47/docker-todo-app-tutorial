@@ -1,0 +1,85 @@
+# --- DEPLOYMENT (Veritabanı Pod'unu Tanımlar) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Deployment'ın adı. "kubectl get deployment" listesinde bu isim görünür.
+  name: database-deployment
+  labels:
+    app: database
+spec:
+  # Bu Deployment'tan kaç adet pod oluşturulacağı.
+  # Bir veritabanı için bu her zaman 1 olmalıdır.
+  replicas: 1
+  selector:
+    # Bu Deployment'ın hangi pod'ları yönetmesi gerektiğini belirten etiket.
+    # Aşağıdaki 'template.metadata.labels' ile eşleşmelidir.
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      # Pod'un etiketi. Service'in pod'u bulması için bu etiket kullanılır.
+      labels:
+        app: database
+    spec:
+      containers:
+        # Container'ın adı
+        - name: database-container
+          # Kullanılacak Docker imajı (Sizin Docker Hub'a yüklediğiniz)
+          image: rojhatince47/basic-docker-tutorial-db:proje
+          resources:
+            # Pod'un ne kadar kaynak (CPU/Memory) kullanabileceği.
+            # "сри" değil "cpu" olmalı. "1000m" = 1 CPU çekirdeği.
+            # "512M1" değil "512Mi" (Mebibyte) veya "512M" olmalı.
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          ports:
+            # Container'ın dinlediği port
+            - containerPort: 3306
+          env:
+            # Burası önemli: 'env' bir "list" (dizi) olmalıdır.
+            # Her değişken "- name: ..." ile başlamalıdır.
+            - name: MYSQL_ALLOW_EMPTY_PASSWORD
+              value: "1"
+            - name: MYSQL_DATABASE
+              value: "todo_app"
+            - name: MYSQL_USER
+              value: "todo_admin"
+            - name: MYSQL_PASSWORD
+              value: "password"
+            # !!! ÖNEMLİ EKSİK !!!
+            # Görev listenizdeki "PV/PVC (Kalıcı Depolama)" adımı için
+            # buraya 'volumeMounts' eklemeniz gerekecek.
+            # Bu haliyle pod silinirse tüm verileriniz kaybolur!
+            # volumeMounts:
+            # - name: mysql-persistent-storage
+            #   mountPath: /var/lib/mysql
+      # !!! ÖNEMLİ EKSİK !!!
+      # 'volumeMounts' ile eşleşmesi için buraya da 'volumes'
+      # bölümü ekleyip PersistentVolumeClaim'i bağlamanız gerekecek.
+      # volumes:
+      # - name: mysql-persistent-storage
+      #   persistentVolumeClaim:
+      #     claimName: mysql-pvc
+
+---
+
+# --- SERVICE (Veritabanına Küme İçinde İsim Verir) ---
+apiVersion: v1
+kind: Service
+metadata:
+  # Service'in adı. Backend uygulaması bu isim üzerinden veritabanına bağlanacak.
+  # Yani backend'in "host" adresi "database-service" olacak.
+  name: database
+spec:
+  type: ClusterIP
+  selector:
+    # Hangi pod'lara trafik yönlendireceğini seçer.
+    # Yukarıdaki Deployment'ın 'template.metadata.labels' etiketiyle eşleşmeli.
+    app: database
+  ports:
+    - port: 3306
+      targetPort: 3306
+  # 'type' belirtilmediği için varsayılan 'ClusterIP' olacaktır.
+  # Bu, servisin sadece küme (cluster) içinden erişilebilir olmasını sağlar.
+  # Veritabanı için bu, doğru ve güvenli bir yöntemdir.
