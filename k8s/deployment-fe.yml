@@ -12,9 +12,34 @@ spec:
       labels:
         app: frontend
     spec:
+      # --- YENİ BÖLÜM 1: INIT CONTAINER ---
+      # Ana konteyner başlamadan önce bu blok çalışır.
+      initContainers:
+      - name: github-downloader
+        # 'wget' komutunu içeren küçük bir Linux imajı
+        image: busybox:latest 
+        
+        # 'wget' komutu ile GitHub'dan dosyayı indirip
+        # /work/ dizini içine 'index.html' olarak kaydediyoruz.
+        command: 
+          - "wget"
+          - "-O"
+          - "/work/index.html"
+          # !!! AŞAĞIDAKİ LİNKİ KENDİ GITHUB "RAW" LİNKİNİZLE DEĞİŞTİRİN !!!
+          - "https://raw.githubusercontent.com/Rojhatince47/docker-todo-app-tutorial/refs/heads/main/frontend/index.html"
+        # 'wget'in dosyayı yazacağı 'work' klasörünü
+        # aşağıda tanımlayacağımız 'html-storage' volume'una bağlıyoruz.
+        volumeMounts:
+        - name: html-storage
+          mountPath: /work
+
+      # --- ANA CONTAINER (SİZİN GÖNDERDİĞİNİZ) ---
       containers:
       - name: frontend
         image: rojhatince47/basic-docker-tutorial-fe:proje
+        imagePullPolicy: Always
+        
+        # Bu bloğu siz eklediniz, harika!
         resources:
           limits:
             memory: "128Mi"
@@ -22,18 +47,37 @@ spec:
           requests:
             cpu: "0.1"
             memory: "128Mi"
+        
         ports:
         - containerPort: 80
+        
+        # --- DEĞİŞİKLİK ---
+        # Apache'nin web kök dizinini (/usr/local/apache2/htdocs/)
+        # 'html-storage' volume'una bağlıyoruz.
+        # Artık Apache, imajdaki 'index.html'i değil,
+        # Init Container'ın indirdiği 'index.html'i yayınlayacak.
+        volumeMounts:
+        - name: html-storage
+          mountPath: /usr/local/apache2/htdocs/ 
+          
+      # --- YENİ BÖLÜM 2: ORTAK DİSK (VOLUME) ---
+      # Init container ve ana container arasında paylaşılacak
+      # 'html-storage' adında geçici bir disk (emptyDir) tanımlıyoruz.
+      volumes:
+      - name: html-storage
+        emptyDir: {} # emptyDir = bu pod yaşadığı sürece var olan geçici klasör
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: frontend
 spec:
+  # Bu ClusterIP düzeltmeniz de harika!
   type: ClusterIP
   selector:
     app: frontend
   ports:
   - port: 3000
-  #container portu bu
+    # Container portunuz 80, bu da doğru.
     targetPort: 80

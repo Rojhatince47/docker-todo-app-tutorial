@@ -36,32 +36,49 @@ spec:
           ports:
             # Container'ın dinlediği port
             - containerPort: 3306
+# --- DÜZELTİLMİŞ 'env' BLOĞU ---
+        # envFrom: bloğunu sildik, yerine bunu ekledik.
           env:
-            # Burası önemli: 'env' bir "list" (dizi) olmalıdır.
-            # Her değişken "- name: ..." ile başlamalıdır.
-            - name: MYSQL_ALLOW_EMPTY_PASSWORD
-              value: "1"
+            # Bu değişkenleri 'dbsecret' içinden çekiyoruz
             - name: MYSQL_DATABASE
-              value: "todo_app"
+              valueFrom:
+                secretKeyRef:
+                  name: dbsecret
+                  key: DB_NAME # dbsecret'teki 'DB_NAME' anahtarını kullan
             - name: MYSQL_USER
-              value: "todo_admin"
+              valueFrom:
+                secretKeyRef:
+                  name: dbsecret
+                  key: DB_USERNAME # dbsecret'teki 'DB_USERNAME' anahtarını kullan
             - name: MYSQL_PASSWORD
-              value: "password"
-            # !!! ÖNEMLİ EKSİK !!!
-            # Görev listenizdeki "PV/PVC (Kalıcı Depolama)" adımı için
-            # buraya 'volumeMounts' eklemeniz gerekecek.
-            # Bu haliyle pod silinirse tüm verileriniz kaybolur!
-            # volumeMounts:
-            # - name: mysql-persistent-storage
-            #   mountPath: /var/lib/mysql
-      # !!! ÖNEMLİ EKSİK !!!
-      # 'volumeMounts' ile eşleşmesi için buraya da 'volumes'
-      # bölümü ekleyip PersistentVolumeClaim'i bağlamanız gerekecek.
-      # volumes:
-      # - name: mysql-persistent-storage
-      #   persistentVolumeClaim:
-      #     claimName: mysql-pvc
-
+              valueFrom:
+                secretKeyRef:
+                  name: dbsecret
+                  key: DB_PASSWORD # dbsecret'teki 'DB_PASSWORD' anahtarını kullan
+            
+            # --- EKSİK DEĞİŞKEN ---
+            # MySQL'in başlaması için BU DEĞİŞKEN ŞARTTIR.
+            # Secret'ta olmadığı için manuel ekliyoruz.
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dbsecret
+                  key: DB_PASSWORD # Root şifresi de normal şifreyle aynı olsun
+                  
+          # --- KALICI DEPOLAMA (Aktifleştirildi) ---
+          # Bu pod'un içindeki /var/lib/mysql klasörünü
+          # 'mysql-storage' adlı volume'a bağla.
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql 
+              
+      # --- KALICI DEPOLAMA (Aktifleştirildi) ---
+      # 'mysql-storage' adının ne olduğunu tanımla:
+      volumes:
+        - name: mysql-storage
+          # Bu, yukarıda oluşturduğumuz PVC'nin (fişin) adıdır.
+          persistentVolumeClaim:
+            claimName: mysql-pvc
 ---
 
 # --- SERVICE (Veritabanına Küme İçinde İsim Verir) ---
@@ -83,3 +100,28 @@ spec:
   # 'type' belirtilmediği için varsayılan 'ClusterIP' olacaktır.
   # Bu, servisin sadece küme (cluster) içinden erişilebilir olmasını sağlar.
   # Veritabanı için bu, doğru ve güvenli bir yöntemdir.
+---
+# --- 1. TALEP (PVC - Fiş) ---
+# Önce kalıcı depolama talebini (fişini) oluşturuyoruz.
+# Minikube'un 'StorageClass'ı bu talebi görünce
+# otomatik olarak bir PV (askı) yaratacak.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  # PVC'ye (fişe) bir isim veriyoruz
+  name: mysql-pvc
+spec:
+  # Erişim Modu: ReadWriteOnce (RWO)
+  # Diskin aynı anda SADECE TEK BİR pod'a bağlanabilmesini sağlar.
+  # Veritabanları için bu zorunludur.
+  accessModes:
+    - ReadWriteOnce
+  
+  # Minikube'un varsayılan 'StorageClass' (vestiyer görevlisi) adını
+  # buraya yazmak iyi bir pratiktir, ancak genelde 'standard' varsayılandır.
+  # storageClassName: standard
+  
+  # Ne kadar alana ihtiyacımız var?
+  resources:
+    requests:
+      storage: 5Gi # <Size> yerine 5 Gigabyte olarak düzeltildi

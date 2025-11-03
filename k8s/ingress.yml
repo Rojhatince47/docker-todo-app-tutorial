@@ -5,33 +5,40 @@ metadata:
   # Ingress objesinin küme içindeki adı
   name: my-ingress
 spec:
+  # --- KRİTİK EKLENTİ ---
+  # 'nginx' controller'ına bu kuralları yönetmesi gerektiğini söyler.
+  ingressClassName: nginx
+  
   rules:
-  # 1. Kural: 'todo.ayti.tech' adresinden gelen istekler için
+  # 1. Kural: Frontend (Arayüz)
+  # Tarayıcı 'http://todo.rojhat.ince' adresine gittiğinde...
   - host: todo.rojhat.ince
     http:
       paths:
-      # Gelen isteğin yolu '/' (ana sayfa) ise
+      # Gelen yol '/' (ana sayfa) ise...
       - path: /
         pathType: Prefix
         backend:
           service:
-            # İsteği 'frontend' isimli servise yönlendir
+            # ...trafiği 'frontend' isimli Servise yönlendir.
             name: frontend
             port:
-              # 'frontend' servisinin '3000' numaralı portuna
+              # 'frontend' Servisinin 3000 numaralı portuna.
               number: 3000
   
-  # 2. Kural: 'backend.ayti.tech' adresinden gelen istekler için
+  # 2. Kural: Backend (API)
+  # Tarayıcı 'http://backend.rojhat.ince' adresine gittiğinde...
   - host: backend.rojhat.ince
     http:
       paths:
-      # Gelen isteğin yolu '/' (ana sayfa) ise
+      # Gelen yol '/' ise...
       - path: /
         pathType: Prefix
         backend:
           service:
-            # İsteği 'backend' isimli servise yönlendir
+            # ...trafiği 'backend' isimli Servise yönlendir.
             name: backend
             port:
-              # 'backend' servisinin '5000' numaralı portuna
+              # --- DÜZELTME (Sizin isteğinize göre) ---
+              # 'backend' Servisinin 5000 numaralı portuna.
               number: 5000
